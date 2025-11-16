@@ -1,13 +1,13 @@
 name: DevOps Quest CI/CD
 
 on:
-  push: # شغّل الـ Workflow ده لما أعمل "Push"
+  push: # شغّل هذا الـ Workflow عند عمل Push
     branches:
-      - main # على فرع "main" بس
+      - main # على فرع "main" فقط
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted # !!! هام: استخدم الـ Runner اللي إنت مشغله
+    runs-on: self-hosted # !!! هام جداً: استخدم الـ Runner المحلي
 
     steps:
     - name: 1. Check out code
@@ -16,8 +16,8 @@ jobs:
     - name: 2. Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }} # ده السر اللي عملناه في GitHub
-        password: ${{ secrets.DOCKERHUB_TOKEN }}   # ده السر التاني
+        username: ${{ secrets.DOCKERHUB_USERNAME }} # السر الذي أضفته
+        password: ${{ secrets.DOCKERHUB_TOKEN }}   # السر الذي أصلحته
 
     - name: 3. Build and push 'vote' image
       uses: docker/build-push-action@v5
@@ -25,7 +25,7 @@ jobs:
         context: ./vote
         file: ./vote/Dockerfile
         push: true
-        tags: ramzyahmed/vote:latest # اتأكد إن ده اسم مستخدمك
+        tags: ramzyahmed/vote:latest # يجب أن يطابق اسم مستخدمك
 
     - name: 4. Build and push 'result' image
       uses: docker/build-push-action@v5
@@ -33,7 +33,7 @@ jobs:
         context: ./result
         file: ./result/Dockerfile
         push: true
-        tags: ramzyahmed/result:latest # اتأكد إن ده اسم مستخدمك
+        tags: ramzyahmed/result:latest # يجب أن يطابق اسم مستخدمك
 
     - name: 5. Build and push 'worker' image
       uses: docker/build-push-action@v5
@@ -41,12 +41,12 @@ jobs:
         context: ./worker
         file: ./worker/Dockerfile
         push: true
-        tags: ramzyahmed/worker:latest # اتأكد إن ده اسم مستخدمك
+        tags: ramzyahmed/worker:latest # يجب أن يطابق اسم مستخدمك
 
     - name: 6. Apply Kubernetes manifests
       run: |
         kubectl apply -f k8s/
-      # (هنا هيستخدم ملفات الـ yaml المتعدلة اللي فيها أسماء الصور الجديدة)
+      # (سيقوم بتطبيق التغييرات الجديدة في k8s/deployment.yaml)
 
     - name: 7. Force restart deployments
       run: |

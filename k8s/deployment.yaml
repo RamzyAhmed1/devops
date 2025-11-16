@@ -16,12 +16,10 @@ spec:
     spec:
       containers:
       - name: vote
-        image: ramzyahmed/vote:latest # <-- تم التعديل
-        imagePullPolicy: Always # <-- تم التعديل
+        image: ramzyahmed/vote:latest # <-- تأكد أنه اسم مستخدم Docker Hub
+        imagePullPolicy: Always # <-- تأكد أنها Always
         ports:
         - containerPort: 80
-        
-        # --- الموارد والفحص ---
         resources:
           requests:
             memory: "64Mi"
@@ -60,12 +58,10 @@ spec:
     spec:
       containers:
       - name: result
-        image: ramzyahmed/result:latest # <-- تم التعديل
-        imagePullPolicy: Always # <-- تم التعديل
+        image: ramzyahmed/result:latest # <-- تأكد أنه اسم مستخدم Docker Hub
+        imagePullPolicy: Always # <-- تأكد أنها Always
         ports:
         - containerPort: 4000
-        
-        # --- الموارد والفحص ---
         resources:
           requests:
             memory: "64Mi"
@@ -104,10 +100,8 @@ spec:
     spec:
       containers:
       - name: worker
-        image: ramzyahmed/worker:latest # <-- تم التعديل
-        imagePullPolicy: Always # <-- تم التعديل
-
-        # --- الموارد ---
+        image: ramzyahmed/worker:latest # <-- تأكد أنه اسم مستخدم Docker Hub
+        imagePullPolicy: Always # <-- تأكد أنها Always
         resources:
           requests:
             memory: "64Mi"
