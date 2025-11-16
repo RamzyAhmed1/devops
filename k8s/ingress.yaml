@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: voting-app-ingress
+  # لا نحتاج إلى rewrite-target بعد الآن
+spec:
+  ingressClassName: nginx 
+  rules:
+  - host: "vote.localhost" # النطاق الخاص بالتصويت
+    http:
+      paths:
+      - path: / # يخدم على المسار الرئيسي
+        pathType: Prefix
+        backend:
+          service:
+            name: vote
+            port:
+              number: 80
+  - host: "result.localhost" # النطاق الخاص بالنتائج
+    http:
+      paths:
+      - path: / # يخدم على المسار الرئيسي
+        pathType: Prefix
+        backend:
+          service:
+            name: result
+            port:
+              number: 80

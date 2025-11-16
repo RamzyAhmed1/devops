@@ -1,0 +1,55 @@
+name: DevOps Quest CI/CD
+
+on:
+  push: # شغّل الـ Workflow ده لما أعمل "Push"
+    branches:
+      - main # على فرع "main" بس
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted # !!! هام: استخدم الـ Runner اللي إنت مشغله
+
+    steps:
+    - name: 1. Check out code
+      uses: actions/checkout@v4
+
+    - name: 2. Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }} # ده السر اللي عملناه في GitHub
+        password: ${{ secrets.DOCKERHUB_TOKEN }}   # ده السر التاني
+
+    - name: 3. Build and push 'vote' image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./vote
+        file: ./vote/Dockerfile
+        push: true
+        tags: ramzyahmed/vote:latest # اتأكد إن ده اسم مستخدمك
+
+    - name: 4. Build and push 'result' image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./result
+        file: ./result/Dockerfile
+        push: true
+        tags: ramzyahmed/result:latest # اتأكد إن ده اسم مستخدمك
+
+    - name: 5. Build and push 'worker' image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./worker
+        file: ./worker/Dockerfile
+        push: true
+        tags: ramzyahmed/worker:latest # اتأكد إن ده اسم مستخدمك
+
+    - name: 6. Apply Kubernetes manifests
+      run: |
+        kubectl apply -f k8s/
+      # (هنا هيستخدم ملفات الـ yaml المتعدلة اللي فيها أسماء الصور الجديدة)
+
+    - name: 7. Force restart deployments
+      run: |
+        kubectl rollout restart deployment/vote
+        kubectl rollout restart deployment/result
+        kubectl rollout restart deployment/worker

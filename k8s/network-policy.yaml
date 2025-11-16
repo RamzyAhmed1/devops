@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-access-policy # اسم السياسة
+spec:
+  podSelector: # طبّق السياسة دي على...
+    matchLabels:
+      app.kubernetes.io/name: postgresql # البودات بتاعة Postgres اللي نزلها Helm
+  policyTypes:
+  - Ingress # هنفلتر الترافيك اللي "داخل" ليها
+  ingress:
+  - from:
+    - podSelector: # اسمح بالدخول من...
+        matchLabels:
+          app: result # أي بود عليه ليبل "app: result"
+    - podSelector: # و اسمح بالدخول من...
+        matchLabels:
+          app: worker # أي بود عليه ليبل "app: worker"
+    ports:
+    - protocol: TCP
+      port: 5432 # على بورت 5432 فقط

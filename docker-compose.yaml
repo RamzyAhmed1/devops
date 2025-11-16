@@ -1,0 +1,83 @@
+services:
+  # --- Backend Tier ---
+  
+  # تعديل: غيرنا اسم الخدمة من "postgres" إلى "db"
+  db:
+    image: postgres:14-alpine
+    environment:
+      # تعديل: غيرنا كل القيم عشان تطابق الكود
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    networks:
+      - backend
+    healthcheck:
+      # تعديل: بنستخدم اليوزر والباسورد الجداد
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build: ./worker
+    networks:
+      - backend
+    depends_on:
+      # تعديل: بنعتمد على "db" مش "postgres"
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # --- Frontend Tier ---
+  vote:
+    build: ./vote
+    ports:
+      - "8080:80"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  result:
+    build: ./result
+    ports:
+      - "8081:4000"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      # تعديل: بنعتمد على "db" مش "postgres"
+      db:
+        condition: service_healthy
+    # تعديل: شيلنا متغيرات البيئة اللي ملهاش لازمة
+
+  # --- Seed Data Service ---
+  seed-data:
+    build: ./seed-data
+    profiles:
+      - seed
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+      vote:
+        condition: service_started
+
+# --- تعريف الشبكات ---
+networks:
+  frontend:
+  backend:
