@@ -120,7 +120,7 @@ The pipeline runs automatically on any `push` to the `main` branch:
 1. **Checkout:** Pull the latest code.
 2. **Login:** Log into Docker Hub using **Secrets**.
 3. **Build:** Build Docker images for `vote`, `result`, `worker` locally.
-4. **Scan (Trivy):** **(DevSecOps step)** Scan all images for critical/high CVEs. If found, the pipeline fails **before** pushing.
+4. **Scan (Trivy):** **(DevSecOps step)** Scan all images for critical/high CVEs. The pipeline is currently set to `exit-code 0` (Warn only) to allow deployment for this demo, but the logs will still show all found vulnerabilities. For a true production environment, this would be set to `exit-code 1` (Fail).
 5. **Push:** Push only secure images to Docker Hub.
 6. **Deploy:** Apply updated `k8s/` manifests to the cluster.
 7. **Rollout:** Force Deployments to restart to pull new images immediately.
