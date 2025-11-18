@@ -1,13 +1,13 @@
-name: DevOps Quest CI/CD
+name: DevOps Quest CI/CD (with Trivy Scan)
 
 on:
-  push: # شغّل هذا الـ Workflow عند عمل Push
+  push:
     branches:
-      - main # على فرع "main" فقط
+      - main
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted # !!! هام جداً: استخدم الـ Runner المحلي
+    runs-on: self-hosted # Note: will use the self-hosted runner
 
     steps:
     - name: 1. Check out code
@@ -16,39 +16,84 @@ jobs:
     - name: 2. Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }} # السر الذي أضفته
-        password: ${{ secrets.DOCKERHUB_TOKEN }}   # السر الذي أصلحته
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: 3. Build and push 'vote' image
+    # --- Vote Service ---
+    - name: 3. Build 'vote' image
       uses: docker/build-push-action@v5
       with:
         context: ./vote
         file: ./vote/Dockerfile
-        push: true
-        tags: ramzyahmed/vote:latest # يجب أن يطابق اسم مستخدمك
+        push: false # Do not push now
+        load: true  # Load the image locally into the runner
+        tags: ramzyahmed/vote:latest
 
-    - name: 4. Build and push 'result' image
+    - name: 4. Scan 'vote' image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'ramzyahmed/vote:latest'
+        format: 'table'
+        exit-code: '1' # Fail the pipeline if vulnerabilities are found
+        ignore-unfixed: true # Ignore vulnerabilities without fixes
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH' # Only fail for Critical and High severity vulnerabilities
+
+    - name: 5. Push 'vote' image
+      run: docker push ramzyahmed/vote:latest
+
+    # --- Result Service ---
+    - name: 6. Build 'result' image
       uses: docker/build-push-action@v5
       with:
         context: ./result
         file: ./result/Dockerfile
-        push: true
-        tags: ramzyahmed/result:latest # يجب أن يطابق اسم مستخدمك
+        push: false
+        load: true
+        tags: ramzyahmed/result:latest
 
-    - name: 5. Build and push 'worker' image
+    - name: 7. Scan 'result' image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'ramzyahmed/result:latest'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+    - name: 8. Push 'result' image
+      run: docker push ramzyahmed/result:latest
+
+    # --- Worker Service ---
+    - name: 9. Build 'worker' image
       uses: docker/build-push-action@v5
       with:
         context: ./worker
         file: ./worker/Dockerfile
-        push: true
-        tags: ramzyahmed/worker:latest # يجب أن يطابق اسم مستخدمك
+        push: false
+        load: true
+        tags: ramzyahmed/worker:latest
 
-    - name: 6. Apply Kubernetes manifests
+    - name: 10. Scan 'worker' image with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'ramzyahmed/worker:latest'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+    - name: 11. Push 'worker' image
+      run: docker push ramzyahmed/worker:latest
+
+    # --- Deploy ---
+    - name: 12. Apply Kubernetes manifests
       run: |
         kubectl apply -f k8s/
-      # (سيقوم بتطبيق التغييرات الجديدة في k8s/deployment.yaml)
-
-    - name: 7. Force restart deployments
+        
+    - name: 13. Force restart deployments
       run: |
         kubectl rollout restart deployment/vote
         kubectl rollout restart deployment/result
