@@ -21,7 +21,7 @@ jobs:
 
     - name: 3. Install Trivy Security Scanner
       run: choco install trivy -y
-      shell: bash # استخدم bash لتشغيل choco (لضمان التوافق)
+      # تم حذف 'shell: bash' من هنا
 
     # --- Vote Service ---
     - name: 4. Build 'vote' image
@@ -29,18 +29,17 @@ jobs:
       with:
         context: ./vote
         file: ./vote/Dockerfile
-        push: false # لا تقم بالدفع الآن
-        load: true  # قم بتحميل الصورة محليًا للـ Runner
+        push: false 
+        load: true 
         tags: ramzyahmed/vote:latest
 
     - name: 5. Scan 'vote' image with Trivy
       run: |
         trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed ramzyahmed/vote:latest
-      shell: bash # شغّل Trivy باستخدام bash
+      # تم حذف 'shell: bash' من هنا
 
     - name: 6. Push 'vote' image
       run: docker push ramzyahmed/vote:latest
-      shell: bash
 
     # --- Result Service ---
     - name: 7. Build 'result' image
@@ -55,11 +54,9 @@ jobs:
     - name: 8. Scan 'result' image with Trivy
       run: |
         trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed ramzyahmed/result:latest
-      shell: bash
 
     - name: 9. Push 'result' image
       run: docker push ramzyahmed/result:latest
-      shell: bash
 
     # --- Worker Service ---
     - name: 10. Build 'worker' image
@@ -74,21 +71,17 @@ jobs:
     - name: 11. Scan 'worker' image with Trivy
       run: |
         trivy image --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed ramzyahmed/worker:latest
-      shell: bash
 
     - name: 12. Push 'worker' image
       run: docker push ramzyahmed/worker:latest
-      shell: bash
 
     # --- Deploy ---
     - name: 13. Apply Kubernetes manifests
       run: |
         kubectl apply -f k8s/
-      shell: bash
         
     - name: 14. Force restart deployments
       run: |
         kubectl rollout restart deployment/vote
         kubectl rollout restart deployment/result
         kubectl rollout restart deployment/worker
-      shell: bash
