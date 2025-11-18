@@ -2,122 +2,190 @@
 
 ## Project Overview
 
-This is a distributed voting application that allows users to vote between two options and view real-time results. The application consists of multiple microservices that work together to provide a complete voting experience.
+This repository contains a complete and comprehensive solution for the "Hiring Quest" requirements. The **Distributed Voting App** has been transformed from just source code into a **fully automated, production-ready, secure, and observable environment**.
 
-## Application Architecture
+The goal was not just to "run" the application, but to build a resilient infrastructure using modern **GitOps** and **DevSecOps** principles.
 
-The voting application consists of the following components:
+---
 
-![Architecture Diagram](./architecture.excalidraw.png)
+## 🏛️ Solution Architecture
 
-### Frontend Services
-- **Vote Service** (`/vote`): Python Flask web application that provides the voting interface
-- **Result Service** (`/result`): Node.js web application that displays real-time voting results
+The infrastructure is designed to be scalable and secure. Instead of using AKS (due to subscription limitations), **Docker Desktop Kubernetes** was used as a full-featured local alternative, demonstrating that the architecture is **portable** to any Kubernetes cluster.
 
-### Backend Services  
-- **Worker Service** (`/worker`): .NET worker application that processes votes from the queue
-- **Redis**: Message broker that queues votes for processing
-- **PostgreSQL**: Database that stores the final vote counts
 
-### Data Flow
-1. Users visit the vote service to cast their votes
-2. Votes are sent to Redis queue
-3. Worker service processes votes from Redis and stores them in PostgreSQL
-4. Result service queries PostgreSQL and displays real-time results via WebSocket
+![My Solution Architecture](./solution-architecture.png)
 
-### Network Architecture
-The application should use a **two-tier network architecture** for security and organization:
+### 🛠️ Tech Stack Used
 
-- **Frontend Tier Network**: 
-  - Vote service (port 8080)
-  - Result service (port 8081)
-  - Accessible from outside the Docker environment
+| Category | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Containerization** | `Docker` / `Docker Compose` | Build application images and run locally. |
+| **Orchestration** | `Kubernetes (Docker Desktop)` | Manage, scale, and run containers in a production-like environment. |
+| **Infrastructure as Code (IaC)** | `Kubernetes YAML` / `Helm` | Define and deploy applications (Deployments, Services, Ingress) and databases. |
+| **Automation (CI/CD)** | `GitHub Actions` | Fully automate build, test, deployment, and updates. |
+| **Security (DevSecOps)** | `Trivy` / `NetworkPolicies` | Scan images for vulnerabilities (CVEs) and isolate networks within the cluster. |
+| **Observability** | `Prometheus` / `Grafana` | Collect metrics and display live dashboards for system performance. |
+| **Runner** | `Self-Hosted Runner` | Execute the pipeline locally to interact with the local cluster. |
 
-- **Backend Tier Network**:
-  - Worker service
-  - Redis
-  - PostgreSQL
-  - Internal communication only
+---
 
-This separation ensures that database and message queue services are not directly accessible from outside, while the web services remain accessible to users.
+## 🚦 How to Run
 
-## Your Task
+There are two ways to run this solution:
 
-As a DevOps engineer, your task is to containerize this application and create the necessary infrastructure files. You need to create:
+### 1. Quick Local Run (Docker Compose)
 
-### 1. Docker Files
-Create `Dockerfile` for each service:
-- `vote/Dockerfile` - for the Python Flask application
-- `result/Dockerfile` - for the Node.js application  
-- `worker/Dockerfile` - for the .NET worker application
-- `seed-data/Dockerfile` - for the data seeding utility
+Ideal for development and quick testing.
 
-### 2. Docker Compose
-Create `docker-compose.yml` that:
-- Defines all services with proper networking using **two-tier architecture**:
-  - **Frontend tier**: Vote and Result services (user-facing)
-  - **Backend tier**: Worker, Redis, and PostgreSQL (internal services)
-- Sets up health checks for Redis and PostgreSQL
-- Configures proper service dependencies
-- Exposes the vote service on port 8080 and result service on port 8081
-- Uses the provided health check scripts in `/healthchecks` directory
+1. Ensure `Docker Desktop` is installed.
+2. In the terminal, start the application:
+    ```bash
+    docker compose up --build
+    ```
+3. To add sample data (3000 votes), open a new terminal and run:
+    ```bash
+    docker compose --profile seed up
+    ```
+4. Access the applications:
+    * **Vote:** `http://localhost:8080`
+    * **Result:** `http://localhost:8081`
 
-### 3. Health Checks
-The application includes health check scripts:
-- `healthchecks/redis.sh` - Redis health check
-- `healthchecks/postgres.sh` - PostgreSQL health check
+### 2. Kubernetes Run (Production Simulation)
 
-Use these scripts in your Docker Compose configuration to ensure services are ready before dependent services start.
+This is the full environment including observability and security.
 
-## Requirements
+#### Prerequisites
+1. `Docker Desktop` (with Kubernetes enabled in settings).
+2. `kubectl` (Kubernetes CLI).
+3. `Helm` (Kubernetes package manager).
+4. Modify the `hosts` file (for `vote.localhost`).
 
-- All services should be properly networked using **two-tier architecture**:
-  - **Frontend tier network**: Connect Vote and Result services
-  - **Backend tier network**: Connect Worker, Redis, and PostgreSQL
-  - Both tiers should be isolated for security
-- Health checks must be implemented for Redis and PostgreSQL
-- Services should wait for their dependencies to be healthy before starting
-- The vote service should be accessible at `http://localhost:8080`
-- The result service should be accessible at `http://localhost:8081`
-- Use appropriate base images and follow Docker best practices
-- Ensure the application works end-to-end when running `docker compose up`
-- Include a seed service that can populate test data
+#### Steps
+1. **Install Ingress Controller:**
+    ```bash
+    kubectl apply -f [https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml](https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml)
+    ```
+    (Wait a minute until `ingress-nginx-controller` shows `Running`.)
 
-## Data Population
+2. **Install Databases (Helm):**
+    ```bash
+    # Add repos
+    helm repo add bitnami [https://charts.bitnami.com/bitnami](https://charts.bitnami.com/bitnami)
+    helm repo update
 
-The application includes a seed service (`/seed-data`) that can populate the database with test votes:
+    # Install PostgreSQL
+    helm install db bitnami/postgresql \
+      --set global.postgresql.auth.postgresPassword=postgres \
+      --set global.postgresql.auth.username=postgres \
+      --set global.postgresql.auth.database=postgres \
+      --set persistence.enabled=false
 
-- **`make-data.py`**: Creates URL-encoded vote data files (`posta` and `postb`)
-- **`generate-votes.sh`**: Uses Apache Bench (ab) to send 3000 test votes:
-  - 2000 votes for option A
-  - 1000 votes for option B
+    # Install Redis
+    helm install redis bitnami/redis \
+      --set auth.enabled=false \
+      --set persistence.enabled=false
+    ```
 
-### How to Use Seed Data
+3. **Modify `hosts` file (mandatory):**
+    * Open `hosts` file as admin: `C:\Windows\System32\drivers\etc\hosts`
+    * Add these lines at the end and save:
+    ```
+    127.0.0.1  vote.localhost
+    127.0.0.1  result.localhost
+    ```
 
-1. Include the seed service in your `docker-compose.yml`
-2. Run the seed service after all other services are healthy:
-   ```bash
-   docker compose run --rm seed
-   ```
-3. Or run it as a one-time service with a profile:
-   ```bash
-   docker compose --profile seed up
-   ```
+4. **Deploy the Application:**
+    * Apply all `k8s` files (Deployment, Service, Ingress, NetworkPolicy):
+    ```bash
+    kubectl apply -f k8s/
+    ```
 
-## Getting Started
+5. **Access the applications:**
+    * **Vote App:** `http://vote.localhost`
+    * **Result App:** `http://result.localhost`
 
-1. Examine the source code in each service directory
-2. Create the necessary Dockerfiles
-3. Create the docker-compose.yml file with two-tier networking
-4. Test your implementation by running `docker compose up`
-5. Populate test data using the seed service
-6. Verify that you can vote and see results in real-time
+---
 
-## Notes
+## 🔄 CI/CD Pipeline
 
-- The voting application only accepts one vote per client browser
-- The result service uses WebSocket for real-time updates
-- The worker service continuously processes votes from the Redis queue
-- Make sure to handle service startup order properly with health checks
+A full CI/CD pipeline was built using **GitHub Actions**, focusing on **DevSecOps** principles.
 
-Good luck with your challenge! 🚀
+#### 1. Runner
+Since the cluster is running locally (`docker-desktop`), the pipeline uses a **Self-Hosted Runner**, which is the only entity able to interact with the cluster to perform deployment commands.
+
+#### 2. Pipeline Steps (`.github/workflows/ci-cd.yaml`)
+
+The pipeline runs automatically on any `push` to the `main` branch:
+
+1. **Checkout:** Pull the latest code.
+2. **Login:** Log into Docker Hub using **Secrets**.
+3. **Build:** Build Docker images for `vote`, `result`, `worker` locally.
+4. **Scan (Trivy):** **(DevSecOps step)** Scan all images for critical/high CVEs. If found, the pipeline fails **before** pushing.
+5. **Push:** Push only secure images to Docker Hub.
+6. **Deploy:** Apply updated `k8s/` manifests to the cluster.
+7. **Rollout:** Force Deployments to restart to pull new images immediately.
+
+---
+
+## 🔒 Security & Observability
+
+### Security
+1. **Vulnerability Scanning (Trivy):** Integrated into the pipeline to prevent deploying images with known CVEs.
+2. **Network Isolation (NetworkPolicies):** Applied `k8s/network-policy.yaml` to create an internal firewall allowing only `result` and `worker` to access the `db-postgresql-0`.
+3. **Non-Root Containers (PSA compliant):** All `Dockerfile`s create a non-root `app` user to comply with basic Pod Security Admission (PSA) requirements.
+
+### Observability
+1. **Installation:** Installed `kube-prometheus-stack` (via Helm), which includes Prometheus and Grafana.
+2. **Grafana Access:**
+    * **Step 1 (Terminal):** Run port-forward: `kubectl port-forward svc/monitoring-grafana 3000:80`
+    * **Step 2 (Terminal):** Get password: `kubectl get secret monitoring-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo`
+    * **Step 3 (Browser):** Open `http://localhost:3000` (user: `admin`, password from Step 2)
+    * Dashboards available include `Kubernetes / Compute Resources / Cluster`.
+
+---
+
+## 🤯 Real Troubleshooting Challenges Solved
+
+During this solution, several real-world (Day-2) problems were encountered and resolved:
+
+1. **Issue: `GLIBC_2.34 not found` (vote container crash)**
+    * **Analysis:** `python:3.10-slim-buster` image was outdated and missing essential libraries.
+    * **Solution:** Upgrade to `python:3.10-bullseye` (full version) to resolve dependencies.
+
+2. **Issue: `Connection Refused` (result container cannot connect to DB)**
+    * **Analysis:** `result/server.js` was hard-coded to look for DB named `postgres` with user `postgres` at host `db`.
+    * **Solution:** Modify `helm install postgresql` to create DB and user with these names and create an `ExternalName` service pointing `db` to `db-postgresql.default.svc.cluster.local`.
+
+3. **Issue: `CrashLoopBackOff` in `prometheus-node-exporter`**
+    * **Analysis:** Node exporter tries to access host files not allowed by Docker Desktop VM.
+    * **Solution:** Disable this part using `helm upgrade ... --set prometheus-node-exporter.enabled=false`.
+
+4. **Issue: `no such file or directory` (seed-data failed)**
+    * **Analysis:** `generate-votes.sh` was created on Windows, introducing `\r\n` line endings not recognized by Linux.
+    * **Solution:** Add `dos2unix` to `seed-data/Dockerfile` to clean the script before execution.
+
+---
+
+## ☁️ Trade-offs & Azure Alternative
+
+### Trade-offs
+Due to Azure subscription limitations, the solution uses **Docker Desktop Kubernetes** instead of AKS. Terraform for creating AKS was not implemented.
+
+### Azure Experience (AZ-104 / AZ-400) & Migration Path
+As an experienced Azure professional (AZ-104 and AZ-400 certified), migrating this project to AKS would be straightforward:
+
+1. **Infrastructure (Terraform):**
+    * Write Terraform code to create `azurerm_resource_group`, `azurerm_virtual_network`, `azurerm_subnet` (with NSGs), and `azurerm_kubernetes_cluster` (AKS).
+
+2. **Databases (Managed Services):**
+    * Instead of running databases as pods inside the cluster, use Azure managed services.
+    * Create **Azure Database for PostgreSQL** and **Azure Cache for Redis** via Terraform.
+    * Pass connection strings as `Secrets` to deployments (`vote`, `result`, `worker`).
+
+3. **CI/CD Pipeline Changes:**
+    * Change `runs-on: self-hosted` to `runs-on: ubuntu-latest` for GitHub cloud runners.
+    * Add `az login` step using a Service Principal stored in GitHub Secrets.
+    * Add `az aks get-credentials` step to connect `kubectl` to the new cluster.
+
+4. **Ingress:**
+    * Install NGINX Ingress on AKS, or preferably use **Azure Application Gateway Ingress Controller (AGIC)** for direct integration with Azure services.
