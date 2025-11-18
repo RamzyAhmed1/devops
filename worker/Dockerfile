@@ -2,11 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
 
-# نسخ ملف المشروع واستعادة الحزم
+# Copy the project file and restore dependencies
 COPY *.csproj .
 RUN dotnet restore
 
-# نسخ باقي الكود وعمل Publish (بناء نسخة الإنتاج)
+# Copy the remaining source code and publish the production build
 COPY . .
 RUN dotnet publish -c Release -o /app/publish
 
@@ -15,10 +15,10 @@ FROM mcr.microsoft.com/dotnet/runtime:7.0-alpine AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# تعديل: أضفنا السطر ده عشان ننشئ المستخدم
+# Added this step to create a dedicated non-root user
 RUN addgroup -S app && adduser -S app -G app
 
-# .NET images (Alpine) غالباً تنشئ مستخدم 'app' افتراضي.
+# Alpine .NET runtime images typically include an 'app' user already
 USER app
 
 ENTRYPOINT ["dotnet", "Worker.dll"]

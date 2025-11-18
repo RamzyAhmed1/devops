@@ -1,18 +1,18 @@
-# هنستخدم صورة بايثون خفيفة
+# Using a lightweight Python base image
 FROM python:3.10-alpine
 
 WORKDIR /app
 
-# هنثبت الأدوات المطلوبة
+# Install required utilities
 RUN apk add --no-cache apache2-utils dos2unix
 
-# ننسخ كل السكربتات
+# Copy all scripts into the image
 COPY . .
 
-# نصلح الملفات (احتياطي) ونخليهم قابلين للتشغيل
+# Normalize file formats (just in case) and ensure scripts are executable
 RUN dos2unix make-data.py \
     && dos2unix generate-votes.sh \
     && chmod +x generate-votes.sh
 
-# تعديل: هنشغل بايثون الأول، وبعدين السكربت
-CMD ["sh", "-c", "python make-data.py && ./generate-votes.sh"]  
+# Run the Python script first, then execute the generator script
+CMD ["sh", "-c", "python make-data.py && ./generate-votes.sh"]

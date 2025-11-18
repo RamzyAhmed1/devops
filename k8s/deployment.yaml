@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
       - name: vote
-        image: ramzyahmed/vote:latest # <-- تأكد أنه اسم مستخدم Docker Hub
-        imagePullPolicy: Always # <-- تأكد أنها Always
+        image: ramzyahmed/vote:latest # <-- Make sure it's your Docker Hub username
+        imagePullPolicy: Always # <-- Make sure it's set to Always
         ports:
         - containerPort: 80
         resources:
@@ -58,8 +58,8 @@ spec:
     spec:
       containers:
       - name: result
-        image: ramzyahmed/result:latest # <-- تأكد أنه اسم مستخدم Docker Hub
-        imagePullPolicy: Always # <-- تأكد أنها Always
+        image: ramzyahmed/result:latest # <-- Make sure it's your Docker Hub username
+        imagePullPolicy: Always # <-- Make sure it's set to Always
         ports:
         - containerPort: 4000
         resources:
@@ -100,8 +100,8 @@ spec:
     spec:
       containers:
       - name: worker
-        image: ramzyahmed/worker:latest # <-- تأكد أنه اسم مستخدم Docker Hub
-        imagePullPolicy: Always # <-- تأكد أنها Always
+        image: ramzyahmed/worker:latest # <-- Make sure it's your Docker Hub username
+        imagePullPolicy: Always # <-- Make sure it's set to Always
         resources:
           requests:
             memory: "64Mi"

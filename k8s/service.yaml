@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vote # اسم داخلي لخدمة vote
+  name: vote # Internal service name for the vote component
 spec:
   type: ClusterIP
   selector:
@@ -13,32 +13,32 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: result # اسم داخلي لخدمة result
+  name: result # Internal service name for the result component
 spec:
   type: ClusterIP
   selector:
     app: result
   ports:
   - port: 80
-    targetPort: 4000 # بيحول من بورت 80 إلى 4000
+    targetPort: 4000 # Exposes port 80 internally but forwards traffic to port 4000
 ---
-# === أهم جزء ===
-# بنعرّف Kubernetes إن "db" هو هو "db-postgresql"
+# === Key Part ===
+# We map "db" to the actual "db-postgresql" service
 apiVersion: v1
 kind: Service
 metadata:
-  name: db # الاسم اللي الكود بتاعنا بيدور عليه
+  name: db # The service name that our application expects
 spec:
   type: ExternalName
-  # ده العنوان الفعلي للـ postgres اللي نزلناه بـ Helm
-  externalName: db-postgresql.default.svc.cluster.local 
+  # This points to the actual PostgreSQL service installed via Helm
+  externalName: db-postgresql.default.svc.cluster.local
 ---
-# بنعرّف Kubernetes إن "redis" هو هو "redis-master"
+# We map "redis" to the actual "redis-master" service
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis # الاسم اللي الكود بتاعنا بيدور عليه
+  name: redis # The service name the application uses to reach Redis
 spec:
   type: ExternalName
-  # ده العنوان الفعلي للـ redis اللي نزلناه بـ Helm
+  # This resolves to the real Redis endpoint deployed via Helm
   externalName: redis-master.default.svc.cluster.local
